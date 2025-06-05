@@ -1,0 +1,89 @@
+
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Admin – U.S. Corbiolo</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    const PASSWORD = "Corbiolo25c5";
+
+    function checkPassword() {
+      const input = document.getElementById("password-input").value;
+      if (input === PASSWORD) {
+        document.getElementById("login").classList.add("hidden");
+        document.getElementById("admin-panel").classList.remove("hidden");
+      } else {
+        alert("Password errata");
+      }
+    }
+
+    async function sendData(endpoint, formId) {
+      const form = document.getElementById(formId);
+      const data = {};
+      for (const input of form.querySelectorAll("input, textarea")) {
+        data[input.name] = input.value;
+      }
+      try {
+        const res = await fetch(endpoint, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(data)
+        });
+        if (res.ok) {
+          alert("Dati inviati con successo!");
+          form.reset();
+        } else {
+          alert("Errore durante l'invio.");
+        }
+      } catch (err) {
+        alert("Errore di rete.");
+      }
+    }
+  </script>
+</head>
+<body class="bg-[#1f1914] text-white p-6 font-sans">
+  <div id="login" class="max-w-sm mx-auto text-center space-y-4">
+    <h1 class="text-xl font-bold">Accesso Amministrazione</h1>
+    <input type="password" id="password-input" class="w-full p-2 rounded text-black" placeholder="Inserisci password" />
+    <button onclick="checkPassword()" class="bg-blue-600 px-4 py-2 rounded hover:bg-blue-700">Entra</button>
+  </div>
+
+  <div id="admin-panel" class="hidden space-y-10 mt-10">
+    <h2 class="text-2xl font-bold text-center mb-6">Pannello di Controllo</h2>
+
+    <section>
+      <h3 class="text-xl font-semibold mb-2">➕ Aggiungi Partita Giocata</h3>
+      <form id="form-partita" class="space-y-2">
+        <input name="data" placeholder="Data (YYYY-MM-DD)" class="w-full p-2 rounded text-black" required />
+        <input name="avversario" placeholder="Avversario" class="w-full p-2 rounded text-black" required />
+        <input name="gol_fatti" placeholder="Gol fatti" type="number" class="w-full p-2 rounded text-black" required />
+        <input name="gol_subiti" placeholder="Gol subiti" type="number" class="w-full p-2 rounded text-black" required />
+        <textarea name="commento" placeholder="Commento (opzionale)" class="w-full p-2 rounded text-black"></textarea>
+        <button type="button" onclick="sendData('/api/partite', 'form-partita')" class="bg-green-600 px-4 py-2 rounded">Invia</button>
+      </form>
+    </section>
+
+    <section>
+      <h3 class="text-xl font-semibold mb-2">📰 Aggiungi Notizia</h3>
+      <form id="form-news" class="space-y-2">
+        <input name="titolo" placeholder="Titolo" class="w-full p-2 rounded text-black" required />
+        <textarea name="testo" placeholder="Testo della notizia" class="w-full p-2 rounded text-black" required></textarea>
+        <input name="data" placeholder="Data (YYYY-MM-DD)" class="w-full p-2 rounded text-black" required />
+        <button type="button" onclick="sendData('/api/news', 'form-news')" class="bg-green-600 px-4 py-2 rounded">Invia</button>
+      </form>
+    </section>
+
+    <section>
+      <h3 class="text-xl font-semibold mb-2">💰 Aggiungi Sponsor</h3>
+      <form id="form-sponsor" class="space-y-2">
+        <input name="nome" placeholder="Nome sponsor" class="w-full p-2 rounded text-black" required />
+        <input name="logo" placeholder="URL logo" class="w-full p-2 rounded text-black" />
+        <input name="link" placeholder="Link (opzionale)" class="w-full p-2 rounded text-black" />
+        <button type="button" onclick="sendData('/api/sponsor', 'form-sponsor')" class="bg-green-600 px-4 py-2 rounded">Invia</button>
+      </form>
+    </section>
+  </div>
+</body>
+</html>
