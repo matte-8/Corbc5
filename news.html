@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>News</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script defer src="js/menu.js"></script>
+</head>
+<body class="bg-[#1f1914] text-white font-sans">
+  <header class="flex items-center justify-between p-4 border-b border-gray-700">
+    <img src="logo.png" alt="Logo" class="h-10 w-auto" />
+    <h1 class="text-lg font-semibold flex-grow text-center -ml-10">News</h1>
+    <div class="flex items-center gap-4">
+      <a href="index.html" class="text-2xl">🏠</a>
+      <button id="menu-toggle" class="text-3xl">⋮</button>
+    </div>
+  </header>
+  <nav id="menu" class="hidden absolute right-4 top-16 bg-[#2a211c] border border-gray-600 rounded p-4 space-y-2 z-50">
+    <a class="block hover:underline" href="index.html">🏠 Home</a>
+    <a class="block hover:underline" href="news.html">📰 News</a>
+    <a class="block hover:underline" href="squadra.html">👥 Squadra</a>
+    <a class="block hover:underline" href="sponsor.html">💰 Sponsor</a>
+    <a class="block hover:underline" href="partita.html">📊 Ultima Partita</a>
+    <a class="block hover:underline" href="prossima-partita.html">📅 Prossima Partita</a>
+    <a class="block hover:underline" href="calendario.html">📆 Calendario</a>
+    <a class="block hover:underline" href="contatti.html">📇 Contatti</a>
+  </nav>
+  <main class="p-4 space-y-6"><section class="bg-[#2a211c] rounded-xl shadow-lg p-4">
+  <h2 class="text-xl font-bold mb-2">📰 Notizie</h2>
+  <ul class="space-y-2 text-sm text-gray-300">
+    <li>01/06 - Vittoria 5-3 contro I Gladiatori</li>
+    <li>03/06 - Pareggio 2-2 con I Leoni</li>
+  </ul>
+</section></main>
+</body>
+</html>
