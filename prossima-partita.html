@@ -27,10 +27,61 @@
     <a class="block hover:underline" href="contatti.html">📇 Contatti</a>
   </nav>
   <main class="p-4 space-y-6"><section class="bg-[#2a211c] rounded-xl shadow-lg p-4">
-  <h2 class="text-xl font-bold mb-2">📅 Prossima Partita</h2>
-  <p>Calcetto5COR vs I Leoni</p>
-  <p class="text-sm text-gray-400">10/06/2025 - Ore 21:00</p>
-  <p class="text-sm text-gray-500">Campo Sportivo Comunale</p>
+  <h2 id="next-match-title" class="text-xl font-bold mb-1">Prossima Partita</h2>
+  <p id="next-match-details" class="text-sm text-gray-300">Caricamento dettagli...</p>
 </section></main>
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    const titleElement = document.getElementById('next-match-title');
+    const detailsElement = document.getElementById('next-match-details');
+
+    if (!titleElement || !detailsElement) {
+        console.error('Elementi HTML per i dettagli della prossima partita non trovati.');
+        const container = document.querySelector('main section');
+        if(container) container.innerHTML = '<p class="text-red-400">Errore di configurazione pagina: elementi mancanti.</p>';
+        return;
+    }
+
+    titleElement.textContent = 'Caricamento prossima partita...';
+
+    fetch('http://localhost:3000/api/prossime_partite') // Prendiamo tutte e usiamo la prima, per ora
+      .then(response => {
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        return response.json();
+      })
+      .then(data => {
+        if (data && data.length > 0) {
+          // Assumiamo che le prossime partite siano ordinate per data crescente dal backend
+          // o che l'API /api/prossime_partite?sort=asc&limit=1 esista
+          const prossimaPartita = data[0]; // Prendiamo la prima per ora (mock)
+
+          let formattedDate = prossimaPartita.data;
+          if (formattedDate) {
+             try {
+                formattedDate = new Date(prossimaPartita.data).toLocaleDateString('it-IT', {day: '2-digit', month: 'long', year: 'numeric'});
+             } catch(e) { console.warn('Data prossima partita non valida: ', prossimaPartita.data); }
+          } else {
+            formattedDate = 'Data da definire';
+          }
+
+          const ora = prossimaPartita.ora ? new Date('1970-01-01T' + prossimaPartita.ora).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' }) : 'Ora da definire';
+          const luogo = prossimaPartita.luogo || 'Luogo da definire';
+
+          titleElement.textContent = `Prossima Partita: ${formattedDate}`;
+          detailsElement.innerHTML = `Avversario: <strong>${prossimaPartita.avversario}</strong><br>Ora: ${ora}<br>Luogo: ${luogo}`;
+        } else {
+          titleElement.textContent = 'Nessuna prossima partita in programma.';
+          detailsElement.textContent = '';
+        }
+      })
+      .catch(error => {
+        console.error('Errore nel caricare la prossima partita:', error);
+        titleElement.textContent = 'Errore nel caricare la prossima partita.';
+        detailsElement.innerHTML = `<p class="text-red-500">Impossibile connettersi al server. (${error.message})</p>`;
+      });
+  });
+</script>
 </body>
 </html>

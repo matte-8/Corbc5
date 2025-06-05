@@ -27,9 +27,68 @@
     <a class="block hover:underline" href="contatti.html">📇 Contatti</a>
   </nav>
   <main class="p-4 space-y-6"><section class="bg-[#2a211c] rounded-xl shadow-lg p-4">
-  <h2 class="text-xl font-bold mb-2">📊 Ultima Partita</h2>
-  <p>Calcetto5COR 5 - 3 I Gladiatori</p>
-  <p class="text-sm text-gray-400">01/06/2025</p>
+  <h2 id="match-title" class="text-xl font-bold mb-2">Partita Recente</h2>
+  <p id="match-details" class="text-sm text-gray-300 mt-1">Caricamento risultato...</p>
+  <p id="match-comment" class="text-xs text-gray-400 mt-1">Caricamento commento...</p>
 </section></main>
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    const container = document.querySelector('main section'); // Selettore generico
+    const titleElement = document.getElementById('match-title');
+    const detailsElement = document.getElementById('match-details');
+    const commentElement = document.getElementById('match-comment');
+
+    if (!titleElement || !detailsElement || !commentElement) {
+        console.error('Elementi HTML per i dettagli della partita non trovati.');
+        if(container) container.innerHTML = '<p class="text-red-400">Errore di configurazione pagina: elementi mancanti.</p>';
+        return;
+    }
+
+    titleElement.textContent = 'Caricamento ultima partita...';
+
+    // Assumiamo che l'API /api/partite restituisca le partite in ordine cronologico inverso
+    // o che il server abbia un endpoint specifico /api/partite/ultima
+    fetch('http://localhost:3000/api/partite') // Prendiamo tutte e usiamo la prima, per ora
+      .then(response => {
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        return response.json();
+      })
+      .then(data => {
+        if (data && data.length > 0) {
+          const ultimaPartita = data[0]; // Prendiamo la prima partita dall'array (mock)
+
+          let formattedDate = ultimaPartita.data;
+          if (formattedDate) {
+            try {
+                formattedDate = new Date(ultimaPartita.data).toLocaleDateString('it-IT', {day: '2-digit', month: 'long', year: 'numeric'});
+            } catch(e) { console.warn('Data ultima partita non valida: ', ultimaPartita.data); }
+          } else {
+            formattedDate = 'Data non disponibile';
+          }
+
+          titleElement.textContent = `Partita del ${formattedDate} vs ${ultimaPartita.avversario}`;
+          detailsElement.innerHTML = `Risultato: <strong>${ultimaPartita.gol_fatti} - ${ultimaPartita.gol_subiti}</strong>`;
+          if (ultimaPartita.commento) {
+            commentElement.textContent = ultimaPartita.commento;
+          } else {
+            commentElement.textContent = 'Nessun commento per questa partita.';
+            commentElement.classList.add('text-gray-400');
+          }
+        } else {
+          titleElement.textContent = 'Nessuna partita recente trovata.';
+          detailsElement.textContent = '';
+          commentElement.textContent = '';
+        }
+      })
+      .catch(error => {
+        console.error('Errore nel caricare l_ultima partita:', error);
+        titleElement.textContent = 'Errore nel caricare l_ultima partita.';
+        detailsElement.innerHTML = `<p class="text-red-500">Impossibile connettersi al server. (${error.message})</p>`;
+        commentElement.textContent = '';
+      });
+  });
+</script>
 </body>
 </html>

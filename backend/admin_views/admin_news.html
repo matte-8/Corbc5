@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin - Gestione News</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { font-family: sans-serif; margin: 20px; background-color: #f9f9f9; color: #333; }
+        .container { background-color: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,0.1); margin-bottom: 20px; }
+        h1, h2 { color: #333; border-bottom: 1px solid #eee; padding-bottom: 10px; }
+        label { display: block; margin-top: 10px; font-weight: bold; }
+        input[type="text"], input[type="date"], textarea { width: 100%; padding: 8px; margin-top: 5px; border: 1px solid #ddd; border-radius: 4px; box-sizing: border-box; }
+        textarea { min-height: 100px; }
+        button { background-color: #007bff; color: white; padding: 10px 15px; border: none; border-radius: 4px; cursor: pointer; margin-top: 15px; font-size: 1em; }
+        button:hover { background-color: #0056b3; }
+        .delete-btn { background-color: #dc3545; }
+        .delete-btn:hover { background-color: #c82333; }
+        .edit-btn { background-color: #ffc107; color: #333; }
+        .edit-btn:hover { background-color: #e0a800; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { border: 1px solid #ddd; padding: 10px; text-align: left; }
+        th { background-color: #f0f0f0; }
+        .api-key-input { margin-bottom:20px; }
+        .home-link { display:block; margin-bottom:20px; color:#007bff; text-decoration:none; }
+        .home-link:hover { text-decoration:underline; }
+    </style>
+</head>
+<body>
+    <a href="/admin/admin_home.html" class="home-link">&larr; Torna alla Home Admin</a>
+    <div class="container">
+        <h1>Gestione News</h1>
+
+        <div class="api-key-input">
+            <label for="apiKey">API Key (per POST, PUT, DELETE):</label>
+            <input type="text" id="apiKey" name="apiKey" value="SUPER_SECRET_API_KEY" placeholder="Inserisci la tua API Key">
+            <small>Questa chiave è necessaria per creare, modificare o eliminare news.</small>
+        </div>
+
+        <h2 id="form-title">Aggiungi Nuova News</h2>
+        <form id="newsForm">
+            <input type="hidden" id="newsId" name="newsId">
+            <div>
+                <label for="titolo">Titolo:</label>
+                <input type="text" id="titolo" name="titolo" required>
+            </div>
+            <div>
+                <label for="testo">Testo:</label>
+                <textarea id="testo" name="testo" required></textarea>
+            </div>
+            <div>
+                <label for="data_pubblicazione">Data Pubblicazione (opzionale, default a oggi):</label>
+                <input type="date" id="data_pubblicazione" name="data_pubblicazione">
+            </div>
+            <button type="submit" id="submitButton">Aggiungi News</button>
+            <button type="button" id="cancelEditButton" style="display:none;" class="bg-gray-500">Annulla Modifica</button>
+        </form>
+    </div>
+
+    <div class="container">
+        <h2>News Esistenti</h2>
+        <table id="newsTable">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Titolo</th>
+                    <th>Data Pubblicazione</th>
+                    <th>Azioni</th>
+                </tr>
+            </thead>
+            <tbody>
+                <!-- Le righe verranno popolate da JavaScript -->
+            </tbody>
+        </table>
+    </div>
+
+    <script>
+        const apiUrl = 'http://localhost:3000/api/news';
+        const newsForm = document.getElementById('newsForm');
+        const newsTableBody = document.querySelector('#newsTable tbody');
+        const newsIdField = document.getElementById('newsId');
+        const titoloField = document.getElementById('titolo');
+        const testoField = document.getElementById('testo');
+        const dataPubblicazioneField = document.getElementById('data_pubblicazione');
+        const apiKeyField = document.getElementById('apiKey');
+        const submitButton = document.getElementById('submitButton');
+        const formTitle = document.getElementById('form-title');
+        const cancelEditButton = document.getElementById('cancelEditButton');
+
+        // Carica le news esistenti
+        async function fetchNews() {
+            try {
+                const response = await fetch(apiUrl);
+                if (!response.ok) throw new Error(`Errore HTTP: ${response.status}`);
+                const newsItems = await response.json();
+
+                newsTableBody.innerHTML = ''; // Pulisci la tabella
+                if (newsItems && newsItems.length > 0) {
+                    newsItems.forEach(item => {
+                        const row = newsTableBody.insertRow();
+                        const date = item.data_pubblicazione ? new Date(item.data_pubblicazione).toLocaleDateString('it-IT') : 'N/A';
+                        row.innerHTML = `
+                            <td>${item.id}</td>
+                            <td>${item.titolo}</td>
+                            <td>${date}</td>
+                            <td>
+                                <button class="edit-btn" onclick="editNews('${item.id}')">Modifica</button>
+                                <button class="delete-btn" onclick="deleteNews('${item.id}')">Elimina</button>
+                            </td>
+                        `;
+                    });
+                } else {
+                    newsTableBody.innerHTML = '<tr><td colspan="4">Nessuna news trovata.</td></tr>';
+                }
+            } catch (error) {
+                console.error('Errore nel caricare le news:', error);
+                newsTableBody.innerHTML = `<tr><td colspan="4">Errore caricamento news: ${error.message}</td></tr>`;
+            }
+        }
+
+        // Gestione submit del form (Aggiungi/Modifica)
+        newsForm.addEventListener('submit', async function(event) {
+            event.preventDefault();
+            const id = newsIdField.value;
+            const newsData = {
+                titolo: titoloField.value,
+                testo: testoField.value,
+                data_pubblicazione: dataPubblicazioneField.value || null // Invia null se vuoto per usare il default del DB
+            };
+
+            const currentApiKey = apiKeyField.value;
+            if (!currentApiKey) {
+                alert('Per favore, inserisci la API Key.');
+                return;
+            }
+
+            const method = id ? 'PUT' : 'POST';
+            const url = id ? `${apiUrl}/${id}` : apiUrl;
+
+            try {
+                const response = await fetch(url, {
+                    method: method,
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'x-api-key': currentApiKey
+                    },
+                    body: JSON.stringify(newsData)
+                });
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.message || `Errore HTTP: ${response.status}`);
+                }
+                const result = await response.json();
+                alert(`News ${id ? 'aggiornata' : 'aggiunta'} con successo!`);
+                newsForm.reset();
+                newsIdField.value = '';
+                formTitle.textContent = 'Aggiungi Nuova News';
+                submitButton.textContent = 'Aggiungi News';
+                cancelEditButton.style.display = 'none';
+                fetchNews(); // Ricarica la lista
+            } catch (error) {
+                console.error(`Errore nell'${id ? 'aggiornare' : 'aggiungere'} la news:`, error);
+                alert(`Errore: ${error.message}`);
+            }
+        });
+
+        // Prepara il form per la modifica
+        async function editNews(id) {
+            try {
+                // Potremmo fare una GET specifica per l'ID se l'API la supporta,
+                // altrimenti filtriamo dai dati già caricati o ricarichiamo tutto.
+                // Per semplicità, assumiamo che l'API GET /api/news/:id esista o che si possa implementare.
+                // Qui usiamo i dati mock del server.js (che non ha GET by ID, quindi faremo una GET generale e filtreremo)
+                // In un'app reale, sarebbe meglio avere GET /api/news/:id
+                const response = await fetch(`${apiUrl}`); // Prendiamo tutti per ora
+                if (!response.ok) throw new Error('Impossibile caricare i dati per la modifica.');
+                const items = await response.json();
+                const newsItem = items.find(item => item.id == id); // == perché l'ID potrebbe essere stringa o numero
+
+                if (newsItem) {
+                    newsIdField.value = newsItem.id;
+                    titoloField.value = newsItem.titolo;
+                    testoField.value = newsItem.testo;
+                    // Formatta la data per l'input type="date" (YYYY-MM-DD)
+                    dataPubblicazioneField.value = newsItem.data_pubblicazione ? new Date(newsItem.data_pubblicazione).toISOString().split('T')[0] : '';
+
+                    formTitle.textContent = 'Modifica News (ID: ' + newsItem.id + ')';
+                    submitButton.textContent = 'Salva Modifiche';
+                    cancelEditButton.style.display = 'inline-block';
+                    window.scrollTo(0,0); // Scrolla in cima al form
+                } else {
+                    alert('News non trovata per la modifica.');
+                }
+            } catch (error) {
+                alert('Errore nel preparare la modifica: ' + error.message);
+            }
+        }
+
+        cancelEditButton.addEventListener('click', () => {
+            newsForm.reset();
+            newsIdField.value = '';
+            formTitle.textContent = 'Aggiungi Nuova News';
+            submitButton.textContent = 'Aggiungi News';
+            cancelEditButton.style.display = 'none';
+        });
+
+        // Elimina news
+        async function deleteNews(id) {
+            if (!confirm(`Sei sicuro di voler eliminare la news con ID ${id}?`)) return;
+
+            const currentApiKey = apiKeyField.value;
+            if (!currentApiKey) {
+                alert('Per favore, inserisci la API Key.');
+                return;
+            }
+
+            try {
+                const response = await fetch(`${apiUrl}/${id}`, {
+                    method: 'DELETE',
+                    headers: { 'x-api-key': currentApiKey }
+                });
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.message || `Errore HTTP: ${response.status}`);
+                }
+                alert('News eliminata con successo!');
+                fetchNews(); // Ricarica la lista
+            } catch (error) {
+                console.error('Errore nell_eliminare la news:', error);
+                alert(`Errore: ${error.message}`);
+            }
+        }
+
+        // Caricamento iniziale
+        fetchNews();
+    </script>
+</body>
+</html>

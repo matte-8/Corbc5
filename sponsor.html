@@ -33,5 +33,56 @@
     <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/2/2f/Google_2015_logo.svg/512px-Google_2015_logo.svg.png" class="h-12">
   </div>
 </section></main>
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    const sponsorDiv = document.querySelector('main section div.flex'); // Selettore basato sulla struttura attuale
+    const sectionTitle = document.querySelector('main section h2');
+
+    if (!sponsorDiv) {
+      console.error('Elemento <div> per gli sponsor non trovato.');
+      if (sectionTitle) sectionTitle.insertAdjacentHTML('afterend', '<p class="text-red-400">Errore: Impossibile caricare gli sponsor. Contenitore non trovato.</p>');
+      return;
+    }
+
+    sponsorDiv.innerHTML = '<p>Caricamento sponsor...</p>';
+
+    fetch('http://localhost:3000/api/sponsor')
+      .then(response => {
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        return response.json();
+      })
+      .then(data => {
+        sponsorDiv.innerHTML = ''; // Pulisci
+        if (data && data.length > 0) {
+          data.forEach(sponsor => {
+            const sponsorElement = document.createElement(sponsor.link ? 'a' : 'div');
+            if (sponsor.link) {
+              sponsorElement.href = sponsor.link;
+              sponsorElement.target = '_blank';
+              sponsorElement.rel = 'noopener noreferrer';
+            }
+            sponsorElement.title = sponsor.nome;
+
+            const img = document.createElement('img');
+            img.src = sponsor.logo || 'logo.png'; // Fallback a un logo di default se non specificato
+            img.alt = sponsor.nome;
+            img.classList.add('h-12', 'w-auto', 'max-w-xs', 'object-contain'); // Stili come da HTML originale, 'w-auto max-w-xs' per flessibilità
+
+            sponsorElement.appendChild(img);
+            sponsorDiv.appendChild(sponsorElement);
+          });
+        } else {
+          sponsorDiv.innerHTML = '<p>Nessuno sponsor da visualizzare al momento.</p>';
+        }
+      })
+      .catch(error => {
+        console.error('Errore nel caricare gli sponsor:', error);
+        sponsorDiv.innerHTML = `<p>Errore nel caricamento degli sponsor. (${error.message})</p>`;
+         if (sectionTitle) sectionTitle.insertAdjacentHTML('afterend', `<p class="text-red-400">Impossibile connettersi al server per caricare gli sponsor.</p>`);
+      });
+  });
+</script>
 </body>
 </html>

@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8"><title>Admin - Gestione Partite Giocate</title>
+    <script src="https://cdn.tailwindcss.com"></script><style>body{font-family:sans-serif;margin:20px;background-color:#f9f9f9;color:#333}.container{background-color:#fff;padding:20px;border-radius:8px;box-shadow:0 0 10px rgba(0,0,0,0.1);margin-bottom:20px}h1,h2{color:#333;border-bottom:1px solid #eee;padding-bottom:10px}label{display:block;margin-top:10px;font-weight:bold}input[type="text"],input[type="date"],input[type="number"],textarea{width:100%;padding:8px;margin-top:5px;border:1px solid #ddd;border-radius:4px;box-sizing:border-box}textarea{min-height:80px}button{background-color:#007bff;color:white;padding:10px 15px;border:none;border-radius:4px;cursor:pointer;margin-top:15px;font-size:1em}.delete-btn{background-color:#dc3545}.edit-btn{background-color:#ffc107;color:#333}.api-key-input{margin-bottom:20px}.home-link{display:block;margin-bottom:20px;color:#007bff;text-decoration:none}.home-link:hover{text-decoration:underline}</style>
+</head>
+<body>
+    <a href="/admin/admin_home.html" class="home-link">&larr; Torna alla Home Admin</a>
+    <div class="container">
+        <h1>Gestione Partite Giocate</h1>
+        <div class="api-key-input"><label for="apiKey">API Key:</label><input type="text" id="apiKey" value="SUPER_SECRET_API_KEY"><small>Necessaria per modifiche.</small></div>
+        <h2 id="form-title">Aggiungi Partita</h2>
+        <form id="crudForm">
+            <input type="hidden" id="itemId" name="itemId">
+            <div><label for="data">Data:</label><input type="date" id="data" required></div>
+            <div><label for="avversario">Avversario:</label><input type="text" id="avversario" required></div>
+            <div><label for="gol_fatti">Gol Fatti:</label><input type="number" id="gol_fatti"></div>
+            <div><label for="gol_subiti">Gol Subiti:</label><input type="number" id="gol_subiti"></div>
+            <div><label for="commento">Commento:</label><textarea id="commento"></textarea></div>
+            <button type="submit" id="submitButton">Aggiungi</button>
+            <button type="button" id="cancelEditButton" style="display:none;" class="bg-gray-500">Annulla Modifica</button>
+        </form>
+    </div>
+    <div class="container">
+        <h2>Partite Esistenti</h2>
+        <table id="itemsTable">
+            <thead><tr><th>ID</th><th>Data</th><th>Avversario</th><th>Risultato</th><th>Commento</th><th>Azioni</th></tr></thead>
+            <tbody></tbody>
+        </table>
+    </div>
+    <script>
+        const apiUrl = 'http://localhost:3000/api/partite';
+        const form = document.getElementById('crudForm');
+        const tableBody = document.querySelector('#itemsTable tbody');
+        const itemIdField = document.getElementById('itemId');
+        const fields = { data: 'date', avversario: 'text', gol_fatti: 'number', gol_subiti: 'number', commento: 'textarea' };
+        const apiKeyField = document.getElementById('apiKey');
+        const submitButton = document.getElementById('submitButton');
+        const formTitle = document.getElementById('form-title');
+        const cancelEditButton = document.getElementById('cancelEditButton');
+
+        async function fetchItems() {
+            try {
+                const response = await fetch(apiUrl);
+                if (!response.ok) throw new Error(`Errore HTTP: ${response.status}`);
+                const items = await response.json();
+                tableBody.innerHTML = '';
+                if (items && items.length > 0) {
+                    items.forEach(item => {
+                        const row = tableBody.insertRow();
+                        const formattedDate = item.data ? new Date(item.data).toLocaleDateString('it-IT') : 'N/A';
+                        row.innerHTML = `
+                            <td>${item.id}</td>
+                            <td>${formattedDate}</td>
+                            <td>${item.avversario}</td>
+                            <td>${item.gol_fatti !== null ? item.gol_fatti : '-'} - ${item.gol_subiti !== null ? item.gol_subiti : '-'}</td>
+                            <td>${item.commento || ''}</td>
+                            <td><button class="edit-btn" onclick="editItem('${item.id}')">Modifica</button> <button class="delete-btn" onclick="deleteItem('${item.id}')">Elimina</button></td>
+                        `;
+                    });
+                } else { tableBody.innerHTML = '<tr><td colspan="6">Nessun elemento trovato.</td></tr>'; }
+            } catch (error) { console.error('Errore caricamento:', error); tableBody.innerHTML = `<tr><td colspan="6">Errore: ${error.message}</td></tr>`; }
+        }
+
+        form.addEventListener('submit', async function(event) {
+            event.preventDefault();
+            const id = itemIdField.value;
+            let itemData = {};
+            for (const key in fields) { itemData[key] = document.getElementById(key).value || null; }
+            if (itemData.gol_fatti === null) delete itemData.gol_fatti; // Non inviare se non specificato, per usare default DB o API
+            if (itemData.gol_subiti === null) delete itemData.gol_subiti;
+
+            const currentApiKey = apiKeyField.value;
+            if (!currentApiKey) { alert('API Key necessaria.'); return; }
+            const method = id ? 'PUT' : 'POST';
+            const url = id ? `${apiUrl}/${id}` : apiUrl;
+            try {
+                const response = await fetch(url, { method: method, headers: { 'Content-Type': 'application/json', 'x-api-key': currentApiKey }, body: JSON.stringify(itemData) });
+                if (!response.ok) { const err = await response.json(); throw new Error(err.message || `Errore HTTP: ${response.status}`); }
+                alert(`Elemento ${id ? 'aggiornato' : 'aggiunto'}!`);
+                form.reset(); itemIdField.value = '';
+                formTitle.textContent = 'Aggiungi Elemento'; submitButton.textContent = 'Aggiungi'; cancelEditButton.style.display = 'none';
+                fetchItems();
+            } catch (error) { console.error('Errore submit:', error); alert(`Errore: ${error.message}`); }
+        });
+
+        async function editItem(id) {
+            const response = await fetch(apiUrl); // Rieffettua GET per semplicità
+            const items = await response.json();
+            const item = items.find(i => i.id == id);
+            if (item) {
+                itemIdField.value = item.id;
+                for (const key in fields) { document.getElementById(key).value = item[key] !== null && item[key] !== undefined ? (fields[key] === 'date' && item[key] ? new Date(item[key]).toISOString().split('T')[0] : item[key]) : ''; }
+                formTitle.textContent = 'Modifica Elemento (ID: ' + item.id + ')';
+                submitButton.textContent = 'Salva Modifiche'; cancelEditButton.style.display = 'inline-block';
+                window.scrollTo(0,0);
+            } else { alert('Elemento non trovato.'); }
+        }
+
+        cancelEditButton.addEventListener('click', () => {
+            form.reset(); itemIdField.value = '';
+            formTitle.textContent = 'Aggiungi Elemento'; submitButton.textContent = 'Aggiungi'; cancelEditButton.style.display = 'none';
+        });
+
+        async function deleteItem(id) {
+            if (!confirm(`Eliminare ID ${id}?`)) return;
+            const currentApiKey = apiKeyField.value;
+            if (!currentApiKey) { alert('API Key necessaria.'); return; }
+            try {
+                const response = await fetch(`${apiUrl}/${id}`, { method: 'DELETE', headers: { 'x-api-key': currentApiKey } });
+                if (!response.ok) { const err = await response.json(); throw new Error(err.message || `Errore HTTP: ${response.status}`); }
+                alert('Elemento eliminato!'); fetchItems();
+            } catch (error) { console.error('Errore delete:', error); alert(`Errore: ${error.message}`); }
+        }
+        fetchItems();
+    </script>
+</body>
+</html>

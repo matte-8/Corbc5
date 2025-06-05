@@ -34,5 +34,54 @@
     <li>17/06 – vs Gli Assi</li>
   </ul>
 </section></main>
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    const partiteList = document.querySelector('main section ul'); // Selettore basato sulla struttura attuale
+    const sectionTitle = document.querySelector('main section h2');
+
+    if (!partiteList) {
+      console.error('Elemento <ul> per il calendario non trovato.');
+      if (sectionTitle) sectionTitle.insertAdjacentHTML('afterend', '<p class="text-red-400">Errore: Impossibile caricare il calendario. Contenitore non trovato.</p>');
+      return;
+    }
+
+    partiteList.innerHTML = '<li>Caricamento calendario...</li>';
+
+    fetch('http://localhost:3000/api/prossime_partite')
+      .then(response => {
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        return response.json();
+      })
+      .then(data => {
+        partiteList.innerHTML = '';
+        if (data && data.length > 0) {
+          data.forEach(partita => {
+            const listItem = document.createElement('li');
+            let formattedDate = partita.data;
+            if (formattedDate) {
+              try {
+                formattedDate = new Date(partita.data).toLocaleDateString('it-IT', { day: '2-digit', month: 'short' });
+              } catch (e) { console.warn('Data partita non valida: ', partita.data); }
+            } else {
+              formattedDate = 'Data da definire';
+            }
+            const ora = partita.ora ? new Date('1970-01-01T' + partita.ora).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' }) : 'Ora da definire';
+            const luogo = partita.luogo || 'Luogo da definire';
+            listItem.textContent = `${formattedDate} ore ${ora} – vs ${partita.avversario} (presso: ${luogo})`;
+            partiteList.appendChild(listItem);
+          });
+        } else {
+          partiteList.innerHTML = '<li>Nessuna prossima partita in calendario.</li>';
+        }
+      })
+      .catch(error => {
+        console.error('Errore nel caricare il calendario:', error);
+        partiteList.innerHTML = `<li>Errore nel caricamento del calendario. (${error.message})</li>`;
+        if (sectionTitle) sectionTitle.insertAdjacentHTML('afterend', `<p class="text-red-400">Impossibile connettersi al server per caricare il calendario.</p>`);
+      });
+  });
+</script>
 </body>
 </html>

@@ -33,5 +33,52 @@
     <li>Luca Bianchi – Difensore (#5)</li>
   </ul>
 </section></main>
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    const giocatoriList = document.querySelector('main section ul'); // Selettore basato sulla struttura attuale
+    const sectionTitle = document.querySelector('main section h2');
+
+    if (!giocatoriList) {
+      console.error('Elemento <ul> per la squadra non trovato.');
+      if (sectionTitle) sectionTitle.insertAdjacentHTML('afterend', '<p class="text-red-400">Errore: Impossibile caricare la squadra. Contenitore non trovato.</p>');
+      return;
+    }
+
+    giocatoriList.innerHTML = '<li>Caricamento rosa...</li>';
+
+    fetch('http://localhost:3000/api/giocatori')
+      .then(response => {
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        return response.json();
+      })
+      .then(data => {
+        giocatoriList.innerHTML = '';
+        if (data && data.length > 0) {
+          data.forEach(giocatore => {
+            const listItem = document.createElement('li');
+            const numeroMaglia = giocatore.numero_maglia ? ` (#${giocatore.numero_maglia})` : '';
+            const ruolo = giocatore.ruolo || 'Ruolo non specificato';
+            // Gestione foto opzionale
+            let imgTag = '';
+            if (giocatore.foto) {
+              imgTag = `<img src="${giocatore.foto}" alt="Foto di ${giocatore.nome}" class="w-12 h-12 rounded-full mr-3 object-cover float-left">`;
+            }
+            listItem.innerHTML = `${imgTag}<strong>${giocatore.nome}</strong>${numeroMaglia} – ${ruolo}`;
+            listItem.classList.add('py-2', 'border-b', 'border-gray-700', 'last:border-b-0', 'overflow-hidden'); // 'overflow-hidden' per contenere il float
+            giocatoriList.appendChild(listItem);
+          });
+        } else {
+          giocatoriList.innerHTML = '<li>Nessun giocatore in rosa al momento.</li>';
+        }
+      })
+      .catch(error => {
+        console.error('Errore nel caricare la squadra:', error);
+        giocatoriList.innerHTML = `<li>Errore nel caricamento della squadra. (${error.message})</li>`;
+        if (sectionTitle) sectionTitle.insertAdjacentHTML('afterend', `<p class="text-red-400">Impossibile connettersi al server per caricare la squadra.</p>`);
+      });
+  });
+</script>
 </body>
 </html>

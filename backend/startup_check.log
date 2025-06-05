@@ -1,0 +1,4 @@
+Server backend in ascolto sulla porta 3000
+Prova ad accedere a http://localhost:3000/api/partite per vedere i dati mock.
+Per le operazioni di scrittura (POST, PUT, DELETE), includi header x-api-key: SUPER_SECRET_API_KEY
+Errore test query iniziale SELECT NOW(): connect ECONNREFUSED 127.0.0.1:5432
