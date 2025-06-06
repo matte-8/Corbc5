@@ -47,7 +47,7 @@
     // Mostra un messaggio di caricamento
     newsList.innerHTML = '<li>Caricamento notizie...</li>';
 
-    fetch('http://localhost:3000/api/news') // Assumiamo che il backend sia in esecuzione su localhost:3000
+    fetch('https://Corbc5.jules.app/api/news') // Assumiamo che il backend sia in esecuzione su localhost:3000
       .then(response => {
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);
