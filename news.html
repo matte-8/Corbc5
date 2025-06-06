@@ -35,60 +35,40 @@
 </section></main>
 <script>
   document.addEventListener('DOMContentLoaded', function () {
-    const newsList = document.querySelector('main section ul'); // Selettore basato sulla struttura attuale di news.html
-    const newsTitle = document.querySelector('main section h2'); // Selettore per il titolo
+    const newsContainer = document.querySelector('main');
 
-    if (!newsList) {
-      console.error('Elemento <ul> per le news non trovato.');
-      if (newsTitle) newsTitle.insertAdjacentHTML('afterend', '<p class="text-red-400">Errore: Impossibile caricare le news. Contenitore non trovato.</p>');
+    if (!newsContainer) {
+      console.error('Contenitore notizie non trovato.');
       return;
     }
 
-    // Mostra un messaggio di caricamento
-    newsList.innerHTML = '<li>Caricamento notizie...</li>';
+    newsContainer.innerHTML = '<p class="text-gray-400">Caricamento notizie...</p>';
 
-    fetch('https://Corbc5.jules.app/api/news') // Assumiamo che il backend sia in esecuzione su localhost:3000
+    fetch('https://corbc5.jules.app/api/news')
       .then(response => {
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
+        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
         return response.json();
       })
-      .then(data => {
-        newsList.innerHTML = ''; // Pulisci il messaggio di caricamento o i mock data precedenti
-        if (data && data.length > 0) {
-          data.forEach(newsItem => {
-            const listItem = document.createElement('li');
-            // Formattazione della data (opzionale, puoi adattarla)
-            let formattedDate = newsItem.data_pubblicazione;
-            if (formattedDate) {
-              try {
-                formattedDate = new Date(newsItem.data_pubblicazione).toLocaleDateString('it-IT', {
-                  day: '2-digit',
-                  month: '2-digit',
-                  year: 'numeric'
-                });
-              } catch (e) {
-                console.warn('Data non valida:', newsItem.data_pubblicazione);
-              }
-            } else {
-                formattedDate = 'Data non disponibile';
-            }
-
-            listItem.innerHTML = `<strong>${newsItem.titolo}</strong> (${formattedDate})<br>${newsItem.testo}`;
-            listItem.classList.add('mb-2', 'pb-2', 'border-b', 'border-gray-700', 'last:border-b-0');
-            newsList.appendChild(listItem);
-          });
-        } else {
-          newsList.innerHTML = '<li>Nessuna notizia disponibile al momento.</li>';
+      .then(news => {
+        if (!Array.isArray(news) || news.length === 0) {
+          newsContainer.innerHTML = '<p class="text-gray-400">Nessuna notizia disponibile.</p>';
+          return;
         }
+
+        newsContainer.innerHTML = news.map(item => `
+          <article class="bg-[#2a211c] p-4 mb-4 rounded shadow">
+            <h2 class="text-xl font-bold mb-1">${item.titolo}</h2>
+            <p class="text-sm text-gray-300">${item.testo}</p>
+            <p class="text-xs text-gray-500 mt-2">${item.data}</p>
+          </article>
+        `).join('');
       })
       .catch(error => {
-        console.error('Errore nel caricare le news:', error);
-        newsList.innerHTML = `<li>Errore nel caricamento delle notizie. Controlla la console per i dettagli. (${error.message})</li>`;
-        if (newsTitle) newsTitle.insertAdjacentHTML('afterend', `<p class="text-red-400">Impossibile connettersi al server per caricare le news. Assicurati che il backend sia attivo su http://localhost:3000.</p>`);
+        console.error('Errore durante il caricamento delle news:', error);
+        newsContainer.innerHTML = `<p class="text-red-400">Errore durante il caricamento delle news. (${error.message})</p>`;
       });
   });
 </script>
+
 </body>
 </html>
